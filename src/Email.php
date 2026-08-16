@@ -99,14 +99,15 @@ final readonly class Email implements Stringable, JsonSerializable
     }
 
     /**
-     * Masks the address for logs and UI.
+     * Masks the address for logs and UI while keeping at most the available
+     * first two characters visible for short local parts.
      */
     public function masked(): string
     {
         $length = mb_strlen($this->local);
-        $visible = min($length, max(1, (int) floor($length / 3)));
+        $visible = min($length, max(2, (int) floor($length / 3)));
         $masked = mb_substr($this->local, 0, $visible)
-            . str_repeat('*', max(0, $length - $visible));
+            . str_repeat('*', $length - $visible);
 
         return $masked . '@' . $this->domain;
     }

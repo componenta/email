@@ -21,6 +21,9 @@
             "Componenta\\Stdlib\\Tests\\": "tests/"
         }
     },
+    "scripts": {
+        "test": "@php vendor/bin/phpunit --no-configuration tests"
+    },
     "config": {
         "sort-packages": true,
         "allow-plugins": {

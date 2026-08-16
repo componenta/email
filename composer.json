@@ -22,7 +22,7 @@
         }
     },
     "scripts": {
-        "test": "@php vendor/bin/phpunit --no-configuration tests"
+        "test": "@php vendor/bin/pest"
     },
     "config": {
         "sort-packages": true,

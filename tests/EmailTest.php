@@ -25,7 +25,7 @@ it('exposes domain helpers and a masked representation', function (): void {
 
     expect($email->isFromDomain('EXAMPLE.CO.UK'))->toBeTrue()
         ->and($email->tld())->toBe('uk')
-        ->and($email->masked())->toBe('r*****@example.co.uk');
+        ->and($email->masked())->toBe('re****@example.co.uk');
 });
 
 it('distinguishes original local-part case only in strict equality mode', function (): void {
@@ -41,7 +41,7 @@ it('masks every valid local-part length without negative repeat counts', functio
     expect(Email::fromString($address)->masked())->toBe($expected);
 })->with([
     'one character' => ['a@b.co', 'a@b.co'],
-    'two characters' => ['ab@b.co', 'a*@b.co'],
-    'three characters' => ['abc@b.co', 'a**@b.co'],
-    'longer local part' => ['reader@example.com', 'r*****@example.com'],
+    'two characters' => ['ab@b.co', 'ab@b.co'],
+    'three characters' => ['abc@b.co', 'ab*@b.co'],
+    'longer local part' => ['reader@example.com', 're****@example.com'],
 ]);

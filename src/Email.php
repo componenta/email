@@ -14,12 +14,13 @@ final readonly class Email implements Stringable, JsonSerializable
     public string $local;
     public string $domain;
 
+    private string $originalLocal;
+
     /**
      * @throws InvalidArgumentException If the email address is empty, malformed, or too long.
      */
     public function __construct(string $email)
     {
-        // Strip whitespace and invisible control characters
         $email = trim($email);
         $email = preg_replace('/[\x00-\x1F\x7F\xA0]/u', '', $email) ?? $email;
 
@@ -31,7 +32,6 @@ final readonly class Email implements Stringable, JsonSerializable
             throw new InvalidArgumentException("Invalid email format: {$email}");
         }
 
-        // Use mb_strlen for correct character counting (IDN domains, UTF-8)
         if (mb_strlen($email) > 254) {
             throw new InvalidArgumentException('Email cannot exceed 254 characters');
         }
@@ -46,14 +46,11 @@ final readonly class Email implements Stringable, JsonSerializable
             throw new InvalidArgumentException('Email domain cannot exceed 253 characters');
         }
 
-        // Normalize both parts to lowercase for consistency.
-        // RFC 5321 formally allows case-sensitive local parts,
-        // but in practice all MTAs treat them as case-insensitive.
-        $this->local  = mb_strtolower($local);
+        $this->originalLocal = $local;
+        $this->local = mb_strtolower($local);
         $this->domain = mb_strtolower($domain);
-        $this->value  = $this->local . '@' . $this->domain;
+        $this->value = $this->local . '@' . $this->domain;
     }
-
 
     public static function fromString(string $email): self
     {
@@ -69,29 +66,24 @@ final readonly class Email implements Stringable, JsonSerializable
         }
     }
 
-
     /**
      * Compares two email addresses.
      *
-     * @param bool $strict When true, the local part is compared case-sensitively
-     *                     per the formal RFC 5321 definition.
-     *                     Defaults to case-insensitive comparison.
+     * @param bool $strict When true, the original local part is compared case-sensitively.
+     *                     The domain remains case-insensitive in both modes.
      */
     public function equals(self $other, bool $strict = false): bool
     {
         if ($strict) {
-            // Domain is always normalized; compare local parts as-is
-            return $this->local === $other->local
+            return $this->originalLocal === $other->originalLocal
                 && $this->domain === $other->domain;
         }
 
-        // Both values are already lowercased in the constructor
         return $this->value === $other->value;
     }
 
-
     /**
-     * Returns the TLD of the domain: "example.co.uk" -> "uk"
+     * Returns the TLD of the domain: "example.co.uk" -> "uk".
      */
     public function tld(): string
     {
@@ -100,9 +92,6 @@ final readonly class Email implements Stringable, JsonSerializable
 
     /**
      * Checks whether the address belongs to the given domain.
-     * Comparison is case-insensitive.
-     *
-     * Example: $email->isFromDomain('gmail.com')
      */
     public function isFromDomain(string $domain): bool
     {
@@ -110,17 +99,17 @@ final readonly class Email implements Stringable, JsonSerializable
     }
 
     /**
-     * Masks the address for logs and UI: "john.doe@example.com" -> "jo**@example.com"
+     * Masks the address for logs and UI.
      */
     public function masked(): string
     {
-        $visibleChars = max(2, (int) floor(mb_strlen($this->local) / 3));
-        $masked = mb_substr($this->local, 0, $visibleChars)
-            . str_repeat('*', mb_strlen($this->local) - $visibleChars);
+        $length = mb_strlen($this->local);
+        $visible = min($length, max(1, (int) floor($length / 3)));
+        $masked = mb_substr($this->local, 0, $visible)
+            . str_repeat('*', max(0, $length - $visible));
 
         return $masked . '@' . $this->domain;
     }
-
 
     public function jsonSerialize(): string
     {
